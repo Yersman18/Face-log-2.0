@@ -12,7 +12,7 @@ class CustomUserAdmin(UserAdmin):
     
     fieldsets = UserAdmin.fieldsets + (
         ('Información Adicional', {
-            'fields': ('role', 'student_id', 'profile_image', 'face_encoding')
+            'fields': ('role', 'student_id') #'profile_image', #'face_encoding')
         }),
     )
     
