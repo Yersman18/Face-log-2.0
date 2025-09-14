@@ -1,11 +1,14 @@
 # authentication/views.py
-from rest_framework import generics, permissions, viewsets
+from rest_framework import generics, permissions, viewsets, status
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import get_user_model
-from .serializers import UserSerializer, RegisterStudentSerializer
+from .serializers import UserSerializer, RegisterStudentSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer
+from .models import PasswordResetToken
 from attendance.permissions import IsAdminOrReadOnly # Reusing this permission
+from django.utils import timezone
+from datetime import timedelta
 
 User = get_user_model()
 
@@ -45,6 +48,47 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
     def get_object(self):
         # Devuelve el perfil del usuario que hace la petición
         return self.request.user
+
+class PasswordResetRequestView(generics.GenericAPIView):
+    serializer_class = PasswordResetRequestSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+        try:
+            user = User.objects.get(email=email)
+            # Eliminar tokens viejos para este usuario
+            PasswordResetToken.objects.filter(user=user).delete()
+            token = PasswordResetToken.objects.create(user=user)
+            # En una aplicación real, aquí se enviaría un email al usuario con el token
+            # Por ahora, devolvemos el token en la respuesta para facilitar las pruebas
+            return Response({'token': str(token.token)}, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({"error": "No existe un usuario con ese correo electrónico."}, status=status.HTTP_404_NOT_FOUND)
+
+class PasswordResetConfirmView(generics.GenericAPIView):
+    serializer_class = PasswordResetConfirmSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        try:
+            token = PasswordResetToken.objects.get(token=data['token'])
+            if token.created_at < timezone.now() - timedelta(hours=1):
+                token.delete()
+                return Response({"error": "El token ha expirado."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            user = token.user
+            user.set_password(data['password'])
+            user.save()
+            token.delete()
+            return Response({"success": "Contraseña restablecida exitosamente."}, status=status.HTTP_200_OK)
+        except PasswordResetToken.DoesNotExist:
+            return Response({"error": "Token inválido."}, status=status.HTTP_404_NOT_FOUND)
 
 class UserViewSet(viewsets.ModelViewSet):
     """
