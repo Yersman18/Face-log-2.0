@@ -33,6 +33,19 @@ class InstructorFichaListView(generics.ListAPIView):
     def get_queryset(self):
         return Ficha.objects.filter(instructor=self.request.user).select_related('instructor').prefetch_related('students')
 
+class ListAbsencesView(generics.ListAPIView):
+    """
+    Endpoint para que un estudiante autenticado vea sus inasistencias.
+    """
+    serializer_class = AttendanceLogSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role != 'student':
+            return Attendance.objects.none()
+        return Attendance.objects.filter(student=user, status='absent').select_related('session', 'session__ficha')
+
 class SessionViewSet(viewsets.ModelViewSet):
     """
     ViewSet para que un Instructor gestione las sesiones de sus fichas.
