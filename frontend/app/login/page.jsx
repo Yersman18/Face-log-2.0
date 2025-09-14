@@ -25,9 +25,24 @@ export default function LoginPage() {
       }
 
       const data = await res.json();
+
+      // Guardar tokens
       localStorage.setItem("token", data.access);
-      alert("✅ Login exitoso, token guardado en localStorage");
-      window.location.href = "/attendance/fichas";
+      localStorage.setItem("refresh", data.refresh);
+
+      // Decodificar el token JWT para obtener el rol
+      const payload = JSON.parse(atob(data.access.split(".")[1]));
+      const userRole = payload.role;
+
+      // Redirigir según el rol
+      if (userRole === "instructor") {
+        window.location.href = "/dashboard/instructor";
+      } else if (userRole === "student") {
+        window.location.href = "/dashboard/apprentice";
+      } else {
+        window.location.href = "/";
+      }
+
     } catch (err) {
       setError(err.message);
     } finally {
@@ -233,28 +248,7 @@ export default function LoginPage() {
                   
                   {/* Header */}
                   <div className="text-center mb-4">
-                    {/* Logo Container */}
                     <div className="logo-container">
-                      {/* 
-                        🔧 INSTRUCCIONES PARA AGREGAR TU LOGO:
-                        
-                        Reemplaza este div por:
-                        
-                        <img 
-                          src="/images/logo-sena.png" 
-                          alt="Logo SENA"
-                          className="img-fluid rounded-3 shadow-sm"
-                          style={{width: '80px', height: '80px', objectFit: 'contain'}}
-                        />
-                        
-                        O para logo externo:
-                        <img 
-                          src="https://tu-dominio.com/logo.png" 
-                          alt="Logo SENA"
-                          className="img-fluid rounded-3 shadow-sm"
-                          style={{width: '80px', height: '80px', objectFit: 'contain'}}
-                        />
-                      */}
                       <div className="logo-placeholder">
                         <svg width="32" height="32" fill="white" viewBox="0 0 24 24">
                           <path d="M12 1L3 5v6c0 5.55 3.84 9.74 9 11 5.16-1.26 9-5.45 9-11V5l-9-4z"/>
@@ -263,14 +257,12 @@ export default function LoginPage() {
                       </div>
                     </div>
                     
-                    <h1 className="h2 fw-bold text-dark mb-2">SENA</h1>
-                    <p className="text-muted small fw-medium">Sistema de Acceso Institucional</p>
+                    <h1 className="h2 fw-bold text-dark mb-2">FACE LOG</h1>
+                    <p className="text-muted small fw-medium">Sistema de asistencia de reconocimiento facial</p>
                   </div>
 
                   {/* Formulario */}
                   <form onSubmit={handleLogin}>
-                    
-                    {/* Campo Usuario */}
                     <div className="mb-3">
                       <label htmlFor="username" className="form-label fw-medium text-dark small">
                         Usuario
@@ -294,7 +286,6 @@ export default function LoginPage() {
                       </div>
                     </div>
 
-                    {/* Campo Contraseña */}
                     <div className="mb-4">
                       <label htmlFor="password" className="form-label fw-medium text-dark small">
                         Contraseña
@@ -318,7 +309,6 @@ export default function LoginPage() {
                       </div>
                     </div>
 
-                    {/* Botón de Login */}
                     <button
                       type="submit"
                       className="btn btn-primary btn-login w-100 text-white"
@@ -340,7 +330,6 @@ export default function LoginPage() {
                     </button>
                   </form>
 
-                  {/* Mensaje de Error */}
                   {error && (
                     <div className="error-alert">
                       <div className="d-flex align-items-center">
@@ -352,12 +341,10 @@ export default function LoginPage() {
                     </div>
                   )}
 
-                  {/* Separador */}
                   <div className="divider">
                     <span>O</span>
                   </div>
 
-                  {/* Link de registro */}
                   <div className="text-center">
                     <small className="text-muted">
                       ¿No tienes cuenta?{" "}
@@ -367,7 +354,6 @@ export default function LoginPage() {
                     </small>
                   </div>
 
-                  {/* Footer de seguridad */}
                   <div className="security-badge">
                     <div className="d-flex align-items-center justify-content-center text-muted">
                       <svg width="16" height="16" fill="#198754" viewBox="0 0 20 20" className="me-2">
@@ -386,7 +372,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Bootstrap JS (opcional, solo si necesitas interactividad) */}
+      {/* Bootstrap JS */}
       <script 
         src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
         async
