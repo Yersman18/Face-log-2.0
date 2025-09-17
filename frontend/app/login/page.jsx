@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { saveTokens, authFetch, clearTokens } from "../../lib/api";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -14,42 +15,56 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/token/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "")}/auth/token/`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        }
+      );
 
       if (!res.ok) {
-        throw new Error("Credenciales incorrectas");
+        const txt = await res.text();
+        throw new Error(txt || "Credenciales incorrectas");
       }
 
       const data = await res.json();
+      // guardar tokens (access + refresh)
+      saveTokens(data.access, data.refresh);
 
-      // Guardar tokens
-      localStorage.setItem("token", data.access);
-      localStorage.setItem("refresh", data.refresh);
+      // intentar obtener el perfil para conocer el role (ruta común: auth/profile/ o users/me/)
+      let profile = null;
+      const tryProfile = async (path) => {
+        try {
+          const r = await authFetch(path, { method: "GET" });
+          if (r.ok) return await r.json();
+        } catch (err) {
+          return null;
+        }
+        return null;
+      };
 
-      // Decodificar el token JWT para obtener el rol
-      const payload = JSON.parse(atob(data.access.split(".")[1]));
-      const userRole = payload.role;
+      profile = (await tryProfile("auth/profile/")) || (await tryProfile("users/me/")) || null;
 
-      // Redirigir según el rol
-      if (userRole === "instructor") {
+      // salvar role si viene
+      const role = profile?.role || profile?.user?.role || profile?.role_name || null;
+      if (role) localStorage.setItem("role", role);
+
+      // redirigir según role; si no hay role, por defecto al dashboard de aprendiz
+      if (role && role.toLowerCase().includes("instructor")) {
         window.location.href = "/dashboard/instructor";
-      } else if (userRole === "student") {
-        window.location.href = "/dashboard/apprentice";
       } else {
-        window.location.href = "/";
+        // usar ruta que creaste: /dashboard/apprentice
+        window.location.href = "/dashboard/apprentice";
       }
-
     } catch (err) {
-      setError(err.message);
+      clearTokens();
+      setError(err.message || "Error en el login");
     } finally {
       setIsLoading(false);
     }
   }
-
   return (
     <>
       {/* Agregar Bootstrap CSS en el head o _app.js */}
@@ -328,6 +343,13 @@ export default function LoginPage() {
                         </>
                       )}
                     </button>
+
+                    <div className="mb-3 text-end">
+                      <Link href="/forgot-password" className="text-decoration-none small text-primary">
+                        ¿Olvidaste tu contraseña?
+                      </Link>
+                    </div>
+                    
                   </form>
 
                   {error && (
@@ -377,6 +399,6 @@ export default function LoginPage() {
         src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
         async
       />
-    </>
-  );
+    </>
+  );
 }

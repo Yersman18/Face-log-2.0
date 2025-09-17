@@ -13,6 +13,8 @@ from .permissions import IsAdminOrReadOnly, IsInstructorOfFicha
 from django.db.models import Count # Added import
 from excuses.models import Excuse # Added import for InstructorDashboardSummaryView
 from django.utils import timezone
+from django.contrib.auth import get_user_model   # 👈 IMPORTAR User
+User = get_user_model() 
 
 class FichaViewSet(viewsets.ModelViewSet):
     """
@@ -212,26 +214,34 @@ class ApprenticeDashboardSummaryView(generics.GenericAPIView):
         if user.role != 'student':
             return Response({'detail': 'Acceso denegado. Solo aprendices.'}, status=status.HTTP_403_FORBIDDEN)
 
-        # Su porcentaje de asistencia personal
-        total_sessions_attended = Attendance.objects.filter(student=user, status__in=['present', 'late', 'excused']).count()
+        # Total sesiones y asistencias
         total_sessions_for_student = Attendance.objects.filter(student=user).count()
-        
+        total_sessions_attended = Attendance.objects.filter(
+            student=user, 
+            status__in=['present', 'late', 'excused']
+        ).count()
+
+        # Porcentaje de asistencia seguro
         attendance_percentage = 0
         if total_sessions_for_student > 0:
             attendance_percentage = (total_sessions_attended / total_sessions_for_student) * 100
 
-        # Próximas sesiones
+        # Próximas sesiones (manejo seguro si no existe related_name en Attendance)
         now = timezone.now()
-        upcoming_sessions = AttendanceSession.objects.filter(
-            ficha__students=user,
-            date__gte=now.date(),
-            start_time__gte=now.time()
-        ).exclude(attendance__student=user, attendance__status__in=['present', 'late', 'excused']).count()
+        try:
+            upcoming_sessions = AttendanceSession.objects.filter(
+                ficha__students=user,
+                date__gte=now.date(),
+                start_time__gte=now.time()
+            ).count()
+        except Exception as e:
+            print("Error en upcoming_sessions:", e)
+            upcoming_sessions = 0
 
-        # Estado de sus excusas (pendientes)
+        # Excusas pendientes
         pending_excuses = Excuse.objects.filter(student=user, status='pending').count()
 
-        # Resumen de tardanzas e inasistencias
+        # Tardanzas e inasistencias
         late_count = Attendance.objects.filter(student=user, status='late').count()
         absent_count = Attendance.objects.filter(student=user, status='absent').count()
 
@@ -243,6 +253,7 @@ class ApprenticeDashboardSummaryView(generics.GenericAPIView):
             'absent_count': absent_count,
         }
         return Response(data)
+
 
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
