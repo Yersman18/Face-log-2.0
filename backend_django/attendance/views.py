@@ -13,6 +13,7 @@ from .permissions import IsAdminOrReadOnly, IsInstructorOfFicha
 from django.db.models import Count # Added import
 from excuses.models import Excuse # Added import for InstructorDashboardSummaryView
 from django.utils import timezone
+from datetime import datetime
 
 class FichaViewSet(viewsets.ModelViewSet):
     """

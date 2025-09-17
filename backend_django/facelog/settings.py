@@ -122,8 +122,11 @@ SIMPLE_JWT = {
 
 # CORS
 CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",   # 👈 agrega tu frontend
+    "http://127.0.0.1:3000", 
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+
 ]
 
 # Localización
@@ -135,6 +138,7 @@ USE_TZ = True
 # Archivos estáticos y multimedia
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
