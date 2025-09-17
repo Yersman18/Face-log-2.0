@@ -1,4 +1,4 @@
-# authentication/serializers.py
+# authentication/authentication/serializers.py
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from attendance.models import Ficha
 from face_recognition_app.models import FaceEncoding
 from face_recognition_app.services import get_face_encoding_from_image
+import face_recognition
 
 User = get_user_model()
 
@@ -40,11 +41,34 @@ class RegisterStudentSerializer(serializers.ModelSerializer):
         except Ficha.DoesNotExist:
             raise serializers.ValidationError({"ficha_numero": "La ficha especificada no existe."})
 
+        # Validar la imagen facial y almacenar la codificación en los atributos validados
+        face_image = attrs.get('face_image')
+        if face_image:
+            new_encoding = get_face_encoding_from_image(face_image)
+            if new_encoding is None:
+                raise serializers.ValidationError({
+                    "face_image": "No se pudo encontrar un rostro en la imagen o se detectó más de uno. Por favor, suba una imagen clara de su rostro."
+                })
+            
+            # Verificar que el rostro no exista ya en la base de datos
+            existing_encodings = FaceEncoding.objects.all()
+            if existing_encodings.exists():
+                known_encodings = [enc.get_encoding_array() for enc in existing_encodings if enc.get_encoding_array() is not None]
+                if known_encodings: # Ensure list is not empty
+                    matches = face_recognition.compare_faces(known_encodings, new_encoding)
+                    if True in matches:
+                        raise serializers.ValidationError({
+                            "face_image": "Este rostro ya ha sido registrado por otro aprendiz."
+                        })
+
+            attrs['face_encoding'] = new_encoding
+        
         return attrs
 
     def create(self, validated_data):
         ficha_numero = validated_data.pop('ficha_numero')
         face_image = validated_data.pop('face_image')
+        face_encoding = validated_data.pop('face_encoding')
         
         user = User.objects.create_user(
             username=validated_data['username'],
@@ -61,16 +85,9 @@ class RegisterStudentSerializer(serializers.ModelSerializer):
         ficha = Ficha.objects.get(numero_ficha=ficha_numero)
         ficha.students.add(user)
 
-        # Procesar y guardar la codificación facial
-        encoding = get_face_encoding_from_image(face_image)
-        if encoding is None:
-            user.delete() # Eliminar usuario si el rostro no es válido
-            raise serializers.ValidationError({
-                "face_image": "No se pudo encontrar un rostro en la imagen o se detectó más de uno. Por favor, suba una imagen clara de su rostro."
-            })
-
+        # Guardar la codificación facial que ya fue procesada en la validación
         face_encoding_obj = FaceEncoding(user=user, profile_image=face_image)
-        face_encoding_obj.set_encoding_array(encoding)
+        face_encoding_obj.set_encoding_array(face_encoding)
         face_encoding_obj.save()
 
         return user
