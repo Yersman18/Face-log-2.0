@@ -6,7 +6,9 @@ from .views import (
     RegisterStudentView,
     UserProfileView,
     CustomTokenObtainPairView,
-    UserViewSet
+    UserViewSet,
+    PasswordResetRequestView,
+    PasswordResetConfirmView
 )
 
 router = DefaultRouter()
@@ -19,6 +21,10 @@ urlpatterns = [
     # Endpoints para autenticación JWT
     path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
+    # Endpoints para reseteo de contraseña
+    path('password/reset/', PasswordResetRequestView.as_view(), name='password-reset-request'),
+    path('password/reset/confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
     
     # Endpoint para perfil de usuario
     path('profile/', UserProfileView.as_view(), name='user-profile'),

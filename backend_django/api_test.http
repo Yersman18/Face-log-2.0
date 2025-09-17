@@ -1,4 +1,0 @@
-### Verificar rostro con imagen local y session_id
-GET http://127.0.0.1:8000/api/attendance/instructor/dashboard/
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzU1OTAxMTY3LCJpYXQiOjE3NTU4OTc1NjcsImp0aSI6IjRhYWY0OWE3ZmRhZTQ2OTdhNmI0MDI2Yzg1OGQ1ZWMxIiwidXNlcl9pZCI6NX0.3CjhrOkZmazWnUVi6K80qCqi1BthUBHvtS8ELWxPagU
-Content-Type: application/json

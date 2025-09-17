@@ -10,7 +10,8 @@ from .views import (
     GlobalReportView,
     InstructorDashboardSummaryView, # Added import
     ApprenticeDashboardSummaryView, # Added import
-    GlobalAttendancePDFReportView # Added import
+    GlobalAttendancePDFReportView, # Added import
+    ListAbsencesView
 )
 
 # El router registra los ViewSets, que manejan las operaciones CRUD estandar
@@ -25,6 +26,9 @@ urlpatterns = [
     
     # Ruta específica para que un instructor vea su lista de fichas
     path('my-fichas/', InstructorFichaListView.as_view(), name='instructor-fichas'),
+
+    # Ruta específica para que un estudiante vea sus inasistencias
+    path('absences/', ListAbsencesView.as_view(), name='student-absences'),
 
     # Ruta para el reporte global
     path('report/global/', GlobalReportView.as_view(), name='global-report'),
